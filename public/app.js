@@ -128,7 +128,8 @@ function drawTrendChart() {
     return;
   }
 
-  const W = 600, H = 200, px = 12, py = 20;
+  const W = svg.getBoundingClientRect().width || 560;
+  const H = 180, px = 12, py = 20;
   const minV = Math.min(...last.map(p => p.bal));
   const maxV = Math.max(...last.map(p => p.bal), minV + 1);
   const rng  = maxV - minV || 1;
