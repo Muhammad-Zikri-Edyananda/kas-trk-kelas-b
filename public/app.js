@@ -811,8 +811,18 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchTab(btn.getAttribute('data-target'))));
 
   // Bottom Nav (mobile)
-  document.querySelectorAll('.bottom-nav-item').forEach(btn =>
-    btn.addEventListener('click', () => switchTab(btn.getAttribute('data-target'))));
+  document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+    if (btn.id === 'mobile-logout-btn') return; // skip logout btn
+    btn.addEventListener('click', () => switchTab(btn.getAttribute('data-target')));
+  });
+
+  // Mobile logout
+  const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+  if (mobileLogoutBtn) {
+    mobileLogoutBtn.addEventListener('click', () => {
+      document.getElementById('logout-btn').click();
+    });
+  }
 
   // Date
   const today = new Date().toISOString().split('T')[0];
