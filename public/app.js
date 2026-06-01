@@ -834,9 +834,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add Transaction
   document.getElementById('quick-add-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const type     = document.getElementById('tx-type').value;
+    const category = document.getElementById('tx-category').value;
     const body = {
-      type:        document.getElementById('tx-type').value,
-      category:    document.getElementById('tx-category').value,
+      type:        type,
+      category:    category,
       amount:      parseFloat(document.getElementById('tx-amount').value),
       date:        document.getElementById('tx-date').value,
       description: document.getElementById('tx-desc').value,
@@ -849,7 +851,13 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify(body)
       });
       if (res.ok) {
-        showToast('Transaksi berhasil disimpan!', 'success');
+        const isBound = type === 'income' && category === 'dues' && body.member_id;
+        showToast(
+          isBound
+            ?   `Transaksi disimpan & iuran otomatis diperbarui di Tracker! ✓`
+            :   `Transaksi berhasil disimpan!`,
+          'success'
+          );
         document.getElementById('tx-amount').value = '';
         document.getElementById('tx-desc').value   = '';
         txDate.value = today;

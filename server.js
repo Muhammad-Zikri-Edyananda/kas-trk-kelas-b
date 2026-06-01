@@ -185,18 +185,49 @@ app.get('/api/transactions', async (req, res) => {
 
 // 6. Record general transaction (e.g. donation, classroom expense)
 app.post('/api/transactions', requireAdmin, async (req, res) => {
-  const { type, category, amount, date, description, member_id } = req.body;
-  if (!type || !category || !amount || !date) {
-    return res.status(400).json({ error: 'Missing required transaction fields' });
-  }
   try {
+    const { type, category, amount, date, description, member_id } = req.body;
+
+    // Insert transaksi seperti biasa
     const result = await db.run(
-      "INSERT INTO transactions (type, category, amount, date, description, member_id) VALUES (?, ?, ?, ?, ?, ?)",
-      [type, category, parseFloat(amount), date, description || null, member_id || null]
+      `INSERT INTO transactions (type, category, amount, date, description, member_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [type, category, amount, date, description, member_id || null]
     );
-    res.status(201).json({ id: result.id, type, category, amount, date, description, member_id });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+
+    // ── Auto-input ke Uang Kas Tracker ──────────────────────────
+    // Syarat: pemasukan + kategori uang kas + ada member_id
+    if (type === 'income' && category === 'dues' && member_id) {
+
+      // Ambil semua pekan yang sudah dibayar member ini
+      const paidWeeks = await db.all(
+        `SELECT week_number FROM dues_payments WHERE member_id = ?`,
+        [member_id]
+      );
+      const paidNums = paidWeeks.map(r => r.week_number);
+
+      // Hitung berapa pekan yang bisa diisi dari nominal
+      const duesAmount = parseInt(process.env.DUES_AMOUNT) || 5000;
+      const weeksToFill = Math.floor(amount / duesAmount);
+
+      // Cari pekan belum dibayar secara berurutan
+      let filled = 0;
+      for (let w = 1; w <= 16 && filled < weeksToFill; w++) {
+        if (!paidNums.includes(w)) {
+          await db.run(
+            `INSERT OR IGNORE INTO dues_payments (member_id, week_number, amount, date)
+             VALUES (?, ?, ?, ?)`,
+            [member_id, w, duesAmount, date]
+          );
+          filled++;
+        }
+      }
+    }
+    // ────────────────────────────────────────────────────────────
+
+    res.json({ id: result.id, message: 'Transaction added successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
